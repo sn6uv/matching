@@ -87,16 +87,16 @@ class Matcher(object):
             return True
 
     def bind_patts(self):
-        return self.bind(self.send_patt)
+        return self.bind(False)
 
     def bind_args(self):
-        return self.bind(self.send_arg)
+        return self.bind(True)
 
-    def bind(self, sender):
+    def bind(self, is_args):
         total = 0
 
         while True:
-            sent = sender(self.source, self.sink, 2**63)
+            sent = self.send(self.source, self.sink, 2**63, reverse=is_args)
             if sent:
                 logging.debug('sent %i flow through the graph' % (sent,))
                 total += sent
@@ -106,9 +106,9 @@ class Matcher(object):
 
         return total
 
-    def send_patt(self, u, v, minn):
+    def send(self, u, v, minn, reverse=False):
         '''
-        send flow of one assinged pattern through the graph.
+        send flow through the graph.
         performs a DFS
         '''
         logging.debug('sending %i flow %i->%i.' % (minn, u, v))
@@ -124,16 +124,13 @@ class Matcher(object):
             C_edge = self.C[u, t] - self.F[u, t]
 
             if C_edge > 0:
-                sent = self.send_patt(t, v, min(minn, C_edge))
+                sent = self.send(t, v, min(minn, C_edge))
                 if sent:
                     self.F[u, t] += sent
                     self.F[t, u] -= sent
                     return sent
         return 0
 
-    def send_arg(self, u, v, minn):
-        # TODO
-        return 0
 
     def construct_match(self):
         raise NotImplementedError
