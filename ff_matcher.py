@@ -13,7 +13,7 @@ __status__ = "Prototype"
 import logging
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def matchQ(patt, arg):
@@ -96,7 +96,7 @@ class Matcher(object):
         total = 0
 
         while True:
-            sent = sender(self.source, self.sink, float('inf'))
+            sent = sender(self.source, self.sink, 2**63)
             if sent:
                 logging.debug('sent %i flow through the graph' % (sent,))
                 total += sent
@@ -111,6 +111,7 @@ class Matcher(object):
         send flow of one assinged pattern through the graph.
         performs a DFS
         '''
+        logging.debug('sending %i flow %i->%i.' % (minn, u, v))
         self.visited.add(u)
 
         if u == v:
@@ -122,13 +123,13 @@ class Matcher(object):
 
             C_edge = self.C[u, t] - self.F[u, t]
 
-            if C_edge:
+            if C_edge > 0:
                 sent = self.send_patt(t, v, min(minn, C_edge))
                 if sent:
                     self.F[u, t] += sent
                     self.F[t, u] -= sent
                     return sent
-            return 0
+        return 0
 
     def send_arg(self, u, v, minn):
         # TODO
