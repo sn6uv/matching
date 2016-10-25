@@ -121,13 +121,23 @@ class Matcher(object):
             if t in self.visited:
                 continue
 
-            C_edge = self.C[u, t] - self.F[u, t]
+            if reverse:
+                C_edge = self.C[t, u] - self.F[t, u]
+            else:
+                C_edge = self.C[u, t] - self.F[u, t]
 
             if C_edge > 0:
-                sent = self.send(t, v, min(minn, C_edge))
+                if reverse:
+                    sent = self.send(u, t, min(minn, C_edge))
+                else:
+                    sent = self.send(t, v, min(minn, C_edge))
                 if sent:
-                    self.F[u, t] += sent
-                    self.F[t, u] -= sent
+                    if reverse:
+                        self.F[t, v] += sent
+                        self.F[v, t] -= sent
+                    else:
+                        self.F[u, t] += sent
+                        self.F[t, u] -= sent
                     return sent
         return 0
 
