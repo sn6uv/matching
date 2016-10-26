@@ -156,7 +156,7 @@ class Matcher(object):
         recurses towards the source (backwards).
         '''
 
-        self.visited.add(u)
+        self.visited.add(v)
 
         if u == v:
             return minn
