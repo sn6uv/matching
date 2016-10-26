@@ -10,12 +10,16 @@ __status__ = "Prototype"
 
 
 import logging
+from collections import defaultdict
 
 
 logging.basicConfig(level=logging.INFO)
 
 
 class BasePattern(object):
+
+    capacity = (1, 1)
+
     def __init__(self, name):
         self.name = name
 
@@ -34,8 +38,13 @@ class RawPattern(BasePattern):
         return self.value == other
 
 
-def print_c(C):
-    return ', '.join(sorted('%i -> %i' % uv for uv, c in C.items() if c > 0))
+class BlankSequence(BlankPattern):
+
+    capacity = (1, 2**63)
+
+
+def print_flow(C):
+    return ', '.join(sorted('%i->%i: %i' % (u,v,c) for (u, v), c in C.items() if c > 0))
 
 
 class Matcher(object):
@@ -49,13 +58,16 @@ class Matcher(object):
         self.patt_names = {i + 1: patt.name for i, patt in enumerate(patts)}
         self.arg_values = {j + self.k + 1: arg for j, arg in enumerate(args)}
 
-        self.F = {}     # flow
-        self.C = {}     # capacity
+        self.F = defaultdict(int)     # flow
+        self.C = defaultdict(int)     # min capacity
+        self.D = defaultdict(int)     # max capacity
+
         self.init_edges(patts, args)
 
         self.visited = set([])
         self.total_flow = None
-        logging.debug(print_c(self.C))
+        logging.debug(print_flow(self.C))
+        logging.debug(print_flow(self.D))
 
     def init_edges(self, patts, args):
         '''
@@ -64,23 +76,21 @@ class Matcher(object):
         '''
 
         # patts to args
-        capacity = set([])
         for i, patt in enumerate(patts):
             for j, arg in enumerate(args):
                 if patt.matchQ(arg):
-                    capacity.add((i + 1, j + self.k + 1))
-        for i in self.V:
-            for j in self.V:
-                self.C[i, j] = 1 if (i, j) in capacity else 0
-                self.F[i, j] = 0
+                    self.C[i + 1, j + self.k + 1] = 1
+                    self.D[i + 1, j + self.k + 1] = 1
 
         # source to patts
         for i, patt in enumerate(patts):
-            self.C[self.source, i + 1] = 1
+            self.C[self.source, i + 1] = patt.capacity[0]
+            self.D[self.source, i + 1] = patt.capacity[1]
 
         # args to sink
         for j, arg in enumerate(args):
             self.C[j + self.k + 1, self.sink] = 1
+            self.D[j + self.k + 1, self.sink] = 1
 
     def match(self, construct=False):
         '''
@@ -88,6 +98,7 @@ class Matcher(object):
         '''
         logging.info('Binding patterns...')
         bound_patts = self.bind_patts()
+        logging.debug(print_flow(self.F))
         if bound_patts:
             logging.info('Success.')
         else:
@@ -99,6 +110,7 @@ class Matcher(object):
 
         logging.info('Binding arguments...')
         bound_args = self.bind_args()
+        logging.debug(print_flow(self.F))
         if bound_args:
             logging.info('Success.')
         else:
@@ -188,7 +200,7 @@ class Matcher(object):
         for t in self.V:
             if t in self.visited:
                 continue
-            C_edge = self.C[t, u] - self.F[t, u]
+            C_edge = self.D[t, v] - self.F[t, v]
             if C_edge > 0:
                 sent = self.send_backwards(u, t, min(minn, C_edge))
                 if sent:
@@ -201,15 +213,20 @@ class Matcher(object):
         '''
         given a solved flow graph returns a list of assignments
         '''
-        result = {}
+        result = defaultdict(list)
         for u in self.V:
             for v in self.V:
                 if self.F[u, v] > 0 and self.F[self.source, u] > 0 and self.F[v, self.sink] > 0:
                     assert self.F[u, v] == 1
-                    result[self.patt_names[u]] = self.arg_values[v]
+                    result[self.patt_names[u]].append(self.arg_values[v])
+        result = {key: value[0] if len(value) == 1 else value for key, value in result.items()}
         return result
 
 
 m = Matcher([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [1, 2, 3])
+result = m.match(construct=True)
+logging.info(result)
+
+m = Matcher([BlankSequence('x')], [1, 2, 3])
 result = m.match(construct=True)
 logging.info(result)
