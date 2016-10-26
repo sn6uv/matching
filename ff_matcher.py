@@ -2,7 +2,6 @@
 
 """
 Ford-Fulkerson pattern matcher.
-
 """
 
 __author__ = "Angus Griffith"
@@ -17,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def matchQ(patt, arg):
-    # TODO placeholder
+    # TODO
     return patt == arg
 
 
@@ -35,13 +34,17 @@ class Matcher(object):
 
         self.F = {}     # flow
         self.C = {}     # capacity
-        self.init(patts, args)
+        self.init_edges(patts, args)
 
         self.visited = set([])
         self.total_flow = None
         logging.debug(print_c(self.C))
 
-    def init(self, patts, args):
+    def init_edges(self, patts, args):
+        '''
+        Construct the edges for a bipartide graph V = (L, U) where L = patts
+        and R = args. Node l in L is connected to node r in R iff l matches r.
+        '''
         # patts to args
         capacity = set([])
         for i, patt in enumerate(patts):
@@ -62,6 +65,9 @@ class Matcher(object):
             self.C[j + self.k + 1, self.sink] = 1
 
     def match(self, construct=False):
+        '''
+        Pushes flow through the graph to determine a matching.
+        '''
         logging.info('Binding patterns...')
         bound_patts = self.bind_patts()
         if bound_patts:
@@ -178,4 +184,5 @@ class Matcher(object):
 
 
 m = Matcher([1, 2], [1, 2])
-m.match()
+result = m.match()
+logging.info(result)
