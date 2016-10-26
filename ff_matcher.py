@@ -62,49 +62,69 @@ class Matcher(object):
             self.C[j + self.k + 1, self.sink] = 1
 
     def match(self, construct=False):
-        logging.debug('Binding patterns.')
+        logging.info('Binding patterns...')
         bound_patts = self.bind_patts()
-        logging.info('Bound %i/%i patterns.' % (bound_patts, self.k))
-        if bound_patts < self.k:
+        if bound_patts:
+            logging.info('Success.')
+        else:
+            logging.info('Failed.')
             if construct:
                 return None
             else:
                 return False
 
-        logging.debug('Binding arguments.')
+        logging.info('Binding arguments...')
         bound_args = self.bind_args()
-        logging.info('Bound %i/%i arguments.' % (bound_args, self.m))
-        if bound_args < self.m:
+        if bound_args:
+            logging.info('Success.')
+        else:
+            logging.info('Failed.')
             if construct:
                 return None
             else:
                 return False
 
-        logging.debug('Constructing match.')
+        assert bound_patts and bound_args
+
         if construct:
             return self.construct_match()
         else:
             return True
 
     def bind_patts(self):
-        return self.bind(False)
+        '''
+        Essentially Ford-Fulkerson with the first iteration of the outer loop
+        interchanged with the inner loop.
+        '''
+        for t in self.V:
+            unbound = self.C[self.source, t] - self.F[self.source, t]
+            while unbound > 0:
+                self.visited.add(self.source)
+                sent = self.send(t, self.sink, unbound, reverse=False)
+                self.F[self.source, t] += sent
+                self.F[t, self.source] -= sent
+                if sent == 0:
+                    return False
+                unbound -= sent
+            self.visited.clear()
+        return True
 
     def bind_args(self):
-        return self.bind(True)
-
-    def bind(self, is_args):
-        total = 0
-
-        while True:
-            sent = self.send(self.source, self.sink, 2**63, reverse=is_args)
-            if sent:
-                logging.debug('sent %i flow through the graph' % (sent,))
-                total += sent
-            else:
-                break
+        '''
+        see bind_patts
+        '''
+        for t in self.V:
+            unbound = self.C[t, self.sink] - self.F[t, self.sink]
+            while unbound > 0:
+                self.visited.add(self.sink)
+                sent = self.send(self.source, t, unbound, reverse=True)
+                self.F[t, self.sink] += sent
+                self.F[self.sink, t] -= sent
+                if sent == 0:
+                    return False
+                unbound -= sent
             self.visited.clear()
-
-        return total
+        return True
 
     def send(self, u, v, minn, reverse=False):
         '''
@@ -140,7 +160,6 @@ class Matcher(object):
                         self.F[t, u] -= sent
                     return sent
         return 0
-
 
     def construct_match(self):
         raise NotImplementedError
