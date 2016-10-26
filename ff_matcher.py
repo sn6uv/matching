@@ -47,6 +47,7 @@ class Matcher(object):
         self.V = list(range(self.k + self.m + 2))      # vertices
 
         self.patt_names = {i + 1: patt.name for i, patt in enumerate(patts)}
+        self.arg_values = {j + self.k + 1: arg for j, arg in enumerate(args)}
 
         self.F = {}     # flow
         self.C = {}     # capacity
@@ -205,10 +206,10 @@ class Matcher(object):
             for v in self.V:
                 if self.F[u, v] > 0 and self.F[self.source, u] > 0 and self.F[v, self.sink] > 0:
                     assert self.F[u, v] == 1
-                    result[self.patt_names[u]] = v
+                    result[self.patt_names[u]] = self.arg_values[v]
         return result
 
 
-m = Matcher([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 3)], [1, 2, 3])
+m = Matcher([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [1, 2, 3])
 result = m.match(construct=True)
 logging.info(result)
