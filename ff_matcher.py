@@ -100,7 +100,7 @@ class Matcher(object):
             unbound = self.C[self.source, t] - self.F[self.source, t]
             while unbound > 0:
                 self.visited.add(self.source)
-                sent = self.send(t, self.sink, unbound, reverse=False)
+                sent = self.send_forwards(t, self.sink, unbound)
                 self.F[self.source, t] += sent
                 self.F[t, self.source] -= sent
                 if sent == 0:
@@ -117,7 +117,7 @@ class Matcher(object):
             unbound = self.C[t, self.sink] - self.F[t, self.sink]
             while unbound > 0:
                 self.visited.add(self.sink)
-                sent = self.send(self.source, t, unbound, reverse=True)
+                sent = self.send_backwards(self.source, t, unbound)
                 self.F[t, self.sink] += sent
                 self.F[self.sink, t] -= sent
                 if sent == 0:
@@ -126,12 +126,13 @@ class Matcher(object):
             self.visited.clear()
         return True
 
-    def send(self, u, v, minn, reverse=False):
+    def send_forwards(self, u, v, minn):
         '''
         send flow through the graph.
-        performs a DFS
+        performs a DFS to find the next step.
+        recurses towards the sink (forwards).
         '''
-        logging.debug('sending %i flow %i->%i.' % (minn, u, v))
+
         self.visited.add(u)
 
         if u == v:
@@ -140,24 +141,35 @@ class Matcher(object):
         for t in self.V:
             if t in self.visited:
                 continue
-
-            if reverse:
-                C_edge = self.C[t, u] - self.F[t, u]
-            else:
-                C_edge = self.C[u, t] - self.F[u, t]
-
+            C_edge = self.C[u, t] - self.F[u, t]
             if C_edge > 0:
-                if reverse:
-                    sent = self.send(u, t, min(minn, C_edge))
-                else:
-                    sent = self.send(t, v, min(minn, C_edge))
+                sent = self.send_forwards(t, v, min(minn, C_edge))
                 if sent:
-                    if reverse:
-                        self.F[t, v] += sent
-                        self.F[v, t] -= sent
-                    else:
-                        self.F[u, t] += sent
-                        self.F[t, u] -= sent
+                    self.F[u, t] += sent
+                    self.F[t, u] -= sent
+                    return sent
+        return 0
+
+    def send_backwards(self, u, v, minn):
+        '''
+        see send_forwards.
+        recurses towards the source (backwards).
+        '''
+
+        self.visited.add(u)
+
+        if u == v:
+            return minn
+
+        for t in self.V:
+            if t in self.visited:
+                continue
+            C_edge = self.C[t, u] - self.F[t, u]
+            if C_edge > 0:
+                sent = self.send_backwards(u, t, min(minn, C_edge))
+                if sent:
+                    self.F[t, v] += sent
+                    self.F[v, t] -= sent
                     return sent
         return 0
 
