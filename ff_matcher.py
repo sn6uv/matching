@@ -15,9 +15,23 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-def matchQ(patt, arg):
-    # TODO
-    return patt == arg
+class BasePattern(object):
+    def __init__(self, name):
+        self.name = name
+
+
+class BlankPattern(BasePattern):
+    def matchQ(self, other):
+        return True
+
+
+class RawPattern(BasePattern):
+    def __init__(self, name, value):
+        super(RawPattern, self).__init__(name)
+        self.value = value
+
+    def matchQ(self, other):
+        return self.value == other
 
 
 def print_c(C):
@@ -32,6 +46,8 @@ class Matcher(object):
         self.sink = self.k + self.m + 1
         self.V = list(range(self.k + self.m + 2))      # vertices
 
+        self.patt_names = {i + 1: patt.name for i, patt in enumerate(patts)}
+
         self.F = {}     # flow
         self.C = {}     # capacity
         self.init_edges(patts, args)
@@ -45,11 +61,12 @@ class Matcher(object):
         Construct the edges for a bipartide graph V = (L, U) where L = patts
         and R = args. Node l in L is connected to node r in R iff l matches r.
         '''
+
         # patts to args
         capacity = set([])
         for i, patt in enumerate(patts):
             for j, arg in enumerate(args):
-                if matchQ(patt, arg):
+                if patt.matchQ(arg):
                     capacity.add((i + 1, j + self.k + 1))
         for i in self.V:
             for j in self.V:
@@ -180,9 +197,18 @@ class Matcher(object):
         return 0
 
     def construct_match(self):
-        raise NotImplementedError
+        '''
+        given a solved flow graph returns a list of assignments
+        '''
+        result = {}
+        for u in self.V:
+            for v in self.V:
+                if self.F[u, v] > 0 and self.F[self.source, u] > 0 and self.F[v, self.sink] > 0:
+                    assert self.F[u, v] == 1
+                    result[self.patt_names[u]] = v
+        return result
 
 
-m = Matcher([1, 2], [1, 2])
-result = m.match()
+m = Matcher([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 3)], [1, 2, 3])
+result = m.match(construct=True)
 logging.info(result)
