@@ -13,9 +13,6 @@ import logging
 from collections import defaultdict
 
 
-logging.basicConfig(level=logging.INFO)
-
-
 class BasePattern(object):
 
     capacity = (1, 1)
@@ -38,13 +35,13 @@ class RawPattern(BasePattern):
         return self.value == other
 
 
-class BlankSequence(BlankPattern):
+class BlankSequencePattern(BlankPattern):
 
     capacity = (1, 2**63)
 
 
 def print_flow(C):
-    return ', '.join(sorted('%i->%i: %i' % (u,v,c) for (u, v), c in C.items() if c > 0))
+    return ', '.join(sorted('%i->%i: %i' % (u, v, c) for (u, v), c in C.items() if c > 0))
 
 
 class Matcher(object):
@@ -221,12 +218,3 @@ class Matcher(object):
                     result[self.patt_names[u]].append(self.arg_values[v])
         result = {key: value[0] if len(value) == 1 else value for key, value in result.items()}
         return result
-
-
-m = Matcher([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [1, 2, 3])
-result = m.match(construct=True)
-logging.info(result)
-
-m = Matcher([BlankSequence('x')], [1, 2, 3])
-result = m.match(construct=True)
-logging.info(result)
