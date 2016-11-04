@@ -43,34 +43,40 @@ class Matcher(object):
             return True
         return False
 
-    def push_right(self, pos, arg=None):
+    def push_left(self, pos, arg=None):
         '''
-        Pushes the matching to the right where possible.
+        Pushes the matching to the left where possible.
+                pos
+                 |
+                 v
 
-        x_  y_  z__       x_  y_  z__
-         |   |   |   ->    |   |   |
-        [a] [b] [c]       []  [a] [b, c]
+         x__ y_  z_      x__  y_ z_
+         |   |   |  ->   |    |  |
+         a   b   c       a,b  c
 
         Args:
           pos: int, position from which to push
-          arg: argument to move right (optional)
+          arg: argument to move left (optional)
 
         Returns: bool, whether push suceeded.
         '''
         cur_patt = self.patts[pos]
 
         if arg is None:
-            arg = self.matches[cur_patt.name].pop()
-
-        if pos + 1 >= len(self.patts):
-            return False
-        next_patt = self.patts[pos + 1]
-        if not next_patt.matchQ(arg):
-            return False
-        if next_patt.capacity[1] == len(self.matches[next_patt.name]):
-            if not self.push_right(pos + 1):
+            try:
+                arg = self.matches[cur_patt.name].pop(0)
+            except IndexError:
                 return False
-        self.matches[next_patt.name].insert(0, arg)
+
+        if pos < 1:
+            return False
+        prev_patt = self.patts[pos - 1]
+        if not prev_patt.matchQ(arg):
+            return False
+        if prev_patt.capacity[1] == len(self.matches[prev_patt.name]):
+            if not self.push_left(pos - 1):
+                return False
+        self.matches[prev_patt.name].append(arg)
         return True
 
     def match(self):
@@ -82,30 +88,32 @@ class Matcher(object):
         if not self.patts:
             return not self.args
 
+        args = list(reversed(self.args))
+
         # assign each pattern
-        i = len(self.patts) - 1
-        while i >= 0:
-            patt = self.patts[i]
+        for i, patt in enumerate(self.patts):
             for _ in range(patt.capacity[0]):
-                while self.args:
-                    arg = self.args.pop()
+                while args:
+                    arg = args.pop()
                     if patt.matchQ(arg):
                         self.matches[patt.name].insert(0, arg)
                         break
+                    else:
+                        self.push_left(i, arg)
             if len(self.matches[patt.name]) < patt.capacity[0]:
+                # ran out of args
                 return False
-            i -= 1
 
         # assign left over args
-        patt = self.patts[0]
+        patt = self.patts[-1]
         match = self.matches[patt.name]
-        while self.args:
-            arg = self.args.pop()
+        while args:
+            arg = args.pop()
             if not patt.matchQ(arg):
                 return False
             if patt.capacity[1] == len(match):
-                if not self.push_right(0):
+                if not self.push_left(len(self.patts) - 1):
                     return False
-            match.insert(0, arg)
+            match.append(arg)
 
         return True
