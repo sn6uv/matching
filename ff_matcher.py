@@ -13,33 +13,6 @@ import logging
 from collections import defaultdict
 
 
-class BasePattern(object):
-
-    capacity = (1, 1)
-
-    def __init__(self, name):
-        self.name = name
-
-
-class BlankPattern(BasePattern):
-    def matchQ(self, other):
-        return True
-
-
-class RawPattern(BasePattern):
-    def __init__(self, name, value):
-        super(RawPattern, self).__init__(name)
-        self.value = value
-
-    def matchQ(self, other):
-        return self.value == other
-
-
-class BlankSequencePattern(BlankPattern):
-
-    capacity = (1, 2**63)
-
-
 def print_flow(C):
     return ', '.join(sorted('%i->%i: %i' % (u, v, c) for (u, v), c in C.items() if c > 0))
 

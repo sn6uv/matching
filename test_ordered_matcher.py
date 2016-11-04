@@ -1,6 +1,6 @@
 import unittest
 
-from ff_matcher import Matcher
+from ordered_matcher import Matcher
 from patterns import BlankPattern, RawPattern, BlankSequencePattern
 
 
@@ -46,4 +46,5 @@ class MatchTest(unittest.TestCase):
         self.assertMatchTrue([RawPattern('x', 1)], [1])
 
     def test_raw_blank(self):
-        self.assertMatchTrue([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [1, 2, 3])
+        self.assertMatchFalse([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [1, 2, 3])
+        self.assertMatchTrue([BlankPattern('x'), BlankPattern('y'), RawPattern('z', 1)], [3, 2, 1])

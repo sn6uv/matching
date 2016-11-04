@@ -5,7 +5,7 @@ class Matcher(object):
     def __init__(self, patts, args):
         self.patts = patts
         self.args = args
-        self.match = defaultdict(list)
+        self.matches = defaultdict(list)
 
     def match_ends(self):
         '''
@@ -38,7 +38,7 @@ class Matcher(object):
             return False
         if patt.capacity[1] < len(args):
             return False
-        if all(MatchQ(patt, args) for arg in args):
+        if all(patt.matchQ(arg) for arg in args):
             self.matches[patt.name] = args
             return True
         return False
@@ -60,17 +60,17 @@ class Matcher(object):
         cur_patt = self.patts[pos]
 
         if arg is None:
-            arg = self.match[cur_patt.name].pop()
+            arg = self.matches[cur_patt.name].pop()
 
         if pos + 1 >= len(self.patts):
             return False
         next_patt = self.patts[pos + 1]
-        if not MatchQ(next_patt, arg):
+        if not next_patt.matchQ(arg):
             return False
-        if next_patt.capacity[1] == len(self.match[next_patt.name]):
+        if next_patt.capacity[1] == len(self.matches[next_patt.name]):
             if not self.push_right(pos + 1):
                 return False
-        self.match[next_patt.name].insert(0, arg)
+        self.matches[next_patt.name].insert(0, arg)
         return True
 
     def match(self):
@@ -89,19 +89,19 @@ class Matcher(object):
             for _ in range(patt.capacity[0]):
                 while self.args:
                     arg = self.args.pop()
-                    if MatchQ(patt, arg):
-                        self.match[patt.name].insert(0, arg)
+                    if patt.matchQ(arg):
+                        self.matches[patt.name].insert(0, arg)
                         break
-            if len(self.match[patt.name]) < patt.capacity[0]:
+            if len(self.matches[patt.name]) < patt.capacity[0]:
                 return False
             i -= 1
 
         # assign left over args
         patt = self.patts[0]
-        match = self.match[patt.name]
+        match = self.matches[patt.name]
         while self.args:
             arg = self.args.pop()
-            if not MatchQ(patt, arg):
+            if not patt.matchQ(arg):
                 return False
             if patt.capacity[1] == len(match):
                 if not self.push_right(0):
